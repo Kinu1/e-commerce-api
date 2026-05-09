@@ -14,8 +14,9 @@ async function bootstrap() {
   const nodeEnv = config.get<string>('NODE_ENV') ?? 'development';
 
   app.use(helmet());
+  const corsOrigin = config.get<string>('CORS_ORIGIN');
   app.enableCors({
-    origin: config.get<string>('CORS_ORIGIN')?.split(',') ?? true,
+    origin: corsOrigin?.split(',').map((origin) => origin.trim()) ?? true,
     credentials: true
   });
   app.setGlobalPrefix('api/v1');

@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Role, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
+import type { StringValue } from 'ms';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtRefreshPayload, SafeUser } from './auth.types';
 import { LoginDto } from './dto/login.dto';
@@ -96,7 +97,7 @@ export class AuthService {
       { sub: user.id, email: user.email, role: user.role },
       {
         secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
-        expiresIn: this.config.getOrThrow<string>('JWT_ACCESS_EXPIRES_IN')
+        expiresIn: this.config.getOrThrow<StringValue>('JWT_ACCESS_EXPIRES_IN')
       }
     );
 
@@ -105,7 +106,7 @@ export class AuthService {
       { sub: user.id, email: user.email, role: user.role, jti: refreshTokenId },
       {
         secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
-        expiresIn: this.config.getOrThrow<string>('JWT_REFRESH_EXPIRES_IN')
+        expiresIn: this.config.getOrThrow<StringValue>('JWT_REFRESH_EXPIRES_IN')
       }
     );
 
