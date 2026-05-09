@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  customer
+  staff
+}
+
+enum CartStatus {
+  active
+  converted
+}
+
+enum OrderStatus {
+  pending_payment
+  paid
+  processing
+  shipped
+  delivered
+  cancelled
+}
+
+enum PaymentProvider {
+  simulated
+}
+
+enum PaymentStatus {
+  pending
+  approved
+  failed
+}
+
+model User {
+  id             String         @id @default(uuid())
+  name           String
+  email          String         @unique
+  passwordHash   String         @map("password_hash")
+  role           Role           @default(customer)
+  isDeleted      Boolean        @default(false) @map("is_deleted")
+  deletedAt      DateTime?      @map("deleted_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  refreshTokens  RefreshToken[]
+  carts          Cart[]
+  orders         Order[]
+  categoriesMade Category[]     @relation("CategoryCreatedBy")
+  categoriesEdit Category[]     @relation("CategoryUpdatedBy")
+  productsMade   Product[]      @relation("ProductCreatedBy")
+  productsEdit   Product[]      @relation("ProductUpdatedBy")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  tokenHash String    @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  description String?
+  createdById String?   @map("created_by")
+  updatedById String?   @map("updated_by")
+  isDeleted   Boolean   @default(false) @map("is_deleted")
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdBy   User?     @relation("CategoryCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?     @relation("CategoryUpdatedBy", fields: [updatedById], references: [id])
+  products    Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id            String      @id @default(uuid())
+  categoryId    String      @map("category_id")
+  name          String
+  slug          String      @unique
+  description   String?
+  price         Decimal     @db.Decimal(10, 2)
+  stockQuantity Int         @default(0) @map("stock_quantity")
+  imageUrl      String?     @map("image_url")
+  isActive      Boolean     @default(true) @map("is_active")
+  createdById   String?     @map("created_by")
+  updatedById   String?     @map("updated_by")
+  isDeleted     Boolean     @default(false) @map("is_deleted")
+  deletedAt     DateTime?   @map("deleted_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  category      Category    @relation(fields: [categoryId], references: [id])
+  createdBy     User?       @relation("ProductCreatedBy", fields: [createdById], references: [id])
+  updatedBy     User?       @relation("ProductUpdatedBy", fields: [updatedById], references: [id])
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+
+  @@index([categoryId])
+  @@map("products")
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @map("user_id")
+  status    CartStatus @default(active)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  user      User       @relation(fields: [userId], references: [id])
+  items     CartItem[]
+
+  @@index([userId, status])
+  @@map("carts")
+}
+
+model CartItem {
+  id                String  @id @default(uuid())
+  cartId            String  @map("cart_id")
+  productId         String  @map("product_id")
+  quantity          Int
+  unitPriceSnapshot Decimal @map("unit_price_snapshot") @db.Decimal(10, 2)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  cart              Cart    @relation(fields: [cartId], references: [id])
+  product           Product @relation(fields: [productId], references: [id])
+
+  @@unique([cartId, productId])
+  @@map("cart_items")
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  userId      String      @map("user_id")
+  status      OrderStatus @default(pending_payment)
+  totalAmount Decimal     @map("total_amount") @db.Decimal(10, 2)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  user        User        @relation(fields: [userId], references: [id])
+  items       OrderItem[]
+  payments    Payment[]
+
+  @@index([userId, status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                String  @id @default(uuid())
+  orderId           String  @map("order_id")
+  productId         String  @map("product_id")
+  productNameSnapshot String @map("product_name_snapshot")
+  unitPriceSnapshot Decimal @map("unit_price_snapshot") @db.Decimal(10, 2)
+  quantity          Int
+  subtotal          Decimal @db.Decimal(10, 2)
+  order             Order   @relation(fields: [orderId], references: [id])
+  product           Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model Payment {
+  id            String          @id @default(uuid())
+  orderId       String          @map("order_id")
+  provider      PaymentProvider @default(simulated)
+  status        PaymentStatus   @default(pending)
+  amount        Decimal         @db.Decimal(10, 2)
+  failureReason String?         @map("failure_reason")
+  paidAt        DateTime?       @map("paid_at")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+  order         Order           @relation(fields: [orderId], references: [id])
+
+  @@index([orderId, status])
+  @@map("payments")
+}
