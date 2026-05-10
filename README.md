@@ -1,6 +1,6 @@
 # E-commerce Api
 
-Backend REST API para loja virtual, feito com NestJS, Prisma e PostgreSQL. O objetivo e demonstrar uma base profissional para vaga de desenvolvedor full stack junior: arquitetura modular, autenticacao, autorizacao por roles, regras de negocio, testes, Swagger, seed demo e deploy.
+Backend REST API para loja virtual, feito com NestJS, Prisma e PostgreSQL. Com arquitetura modular, autenticacao, autorizacao por roles, regras de negocio, testes, Swagger, seed demo e deploy.
 
 ## Stack
 
